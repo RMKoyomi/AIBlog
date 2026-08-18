@@ -372,8 +372,38 @@ img { max-width: 100%; height: auto; }
 /* === Hero 区域 === */
 .hero {
   text-align: center;
+  /* 全屏 hero：占满首屏视口，访客向下滚动才能看到文章 */
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-2xl) var(--space-lg);
   margin-bottom: var(--space-xl);
+  position: relative;
+}
+.hero-avatar-wrap {
+  margin-bottom: var(--space-lg);
+}
+.hero-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 3px solid var(--accent);
+  background: var(--bg-secondary);
+  display: block;
+}
+.hero-avatar.hero-avatar-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  text-transform: uppercase;
 }
 .hero-title {
   font-size: clamp(2rem, 5vw, 3.2rem);
@@ -396,9 +426,44 @@ img { max-width: 100%; height: auto; }
   justify-content: center;
   gap: var(--space-xl);
   margin-top: var(--space-xl);
+  flex-wrap: wrap;
 }
 .hero-stat {
   text-align: center;
+}
+.scroll-down-btn {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.scroll-down-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateX(-50%) translateY(3px);
+}
+.scroll-down-btn svg {
+  animation: hero-scroll-bounce 1.8s ease-in-out infinite;
+}
+@keyframes hero-scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+@media (max-width: 768px) {
+  .hero-avatar { width: 96px; height: 96px; }
+  .hero-avatar.hero-avatar-text { font-size: 2.4rem; }
 }
 .hero-stat-num {
   font-size: 1.8rem;

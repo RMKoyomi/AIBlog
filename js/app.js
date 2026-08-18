@@ -269,6 +269,9 @@
 
     const heroHTML = `
       <section class="hero">
+        <div class="hero-avatar-wrap">
+          ${site.avatar ? `<img class="hero-avatar" src="${site.avatar}" alt="${escapeHtml(BLOG_CONFIG.author)}">` : `<div class="hero-avatar hero-avatar-text">${escapeHtml(BLOG_CONFIG.author.charAt(0))}</div>`}
+        </div>
         <h1 class="hero-title">${escapeHtml(site.siteName)}</h1>
         <p class="hero-subtitle">${escapeHtml(site.heroSubtitle)}</p>
         <div class="hero-stats">
@@ -285,15 +288,29 @@
             <div class="hero-stat-label">总字数</div>
           </div>
         </div>
+        <button class="scroll-down-btn" id="scroll-down-btn" type="button" title="向下滚动查看文章" aria-label="向下滚动查看文章">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+        </button>
       </section>
     `;
 
     const cardsHTML = sortedPosts.map(post => renderArticleCard(post)).join('');
 
     main.innerHTML = heroHTML + `
-      <h2 class="section-title">${escapeHtml(site.sectionTitle)}</h2>
+      <h2 class="section-title" id="articles-section">${escapeHtml(site.sectionTitle)}</h2>
       <div class="${gridClass()}">${cardsHTML}</div>
     `;
+
+    // 向下箭头：点击平滑滚动到文章区
+    var scrollBtn = $('#scroll-down-btn');
+    if (scrollBtn) {
+      scrollBtn.addEventListener('click', function () {
+        var target = $('#articles-section');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   }
 
   function calcTotalWords() {
