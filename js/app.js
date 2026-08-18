@@ -12,8 +12,27 @@
     route: '/',
     searchQuery: '',
     heroScrollHandler: null,  // 保存当前的 hero 滚动监听器，便于下次渲染前移除
-    heroWheelHandler: null    // 保存当前的 hero 滚轮劫持监听器
+    heroWheelHandler: null,   // 保存当前的 hero 滚轮劫持监听器
+    customPostsLoaded: false, // 远程 custom-posts.json 是否已加载
+    customPosts: []           // 远程自定义文章（所有访客共享，存在仓库 posts/custom-posts.json）
   };
+
+  // 异步加载远程 posts/custom-posts.json（所有访客可见的自定义文章）
+  function loadCustomPosts() {
+    return fetch('posts/custom-posts.json?t=' + Date.now(), { cache: 'no-cache' })
+      .then(function (r) {
+        if (!r.ok) return [];
+        return r.json();
+      })
+      .then(function (arr) {
+        state.customPosts = Array.isArray(arr) ? arr : [];
+        state.customPostsLoaded = true;
+      })
+      .catch(function () {
+        state.customPosts = [];
+        state.customPostsLoaded = true;
+      });
+  }
 
   // === 主题配置（从 localStorage 恢复；背景默认值取自 BLOG_CONFIG.background） ===
   var storedBgData = localStorage.getItem('blog-bg-data');
@@ -128,20 +147,29 @@
     localStorage.setItem('blog-deleted-ids', JSON.stringify(arr));
   }
 
-  // 合并内置文章与用户文章：内置文章可被同 id 的用户版本覆盖，删除的排除
+  // 合并内置文章、远程自定义文章、本地用户文章：本地 > 远程 > 内置
   function getPosts() {
-    const custom = getCustomPosts();
+    const custom = getCustomPosts();              // 本地 localStorage 用户文章
+    const remote = state.customPosts || [];        // 远程 posts/custom-posts.json
     const deleted = getDeletedIds();
     const builtinIds = BLOG_POSTS.map(p => p.id);
     const customMap = {};
     custom.forEach(p => { customMap[p.id] = p; });
+    const remoteMap = {};
+    remote.forEach(p => { remoteMap[p.id] = p; });
 
     const result = [];
+    // 内置文章：可被本地或远程版本覆盖（本地优先）
     BLOG_POSTS.forEach(p => {
-      if (!deleted.includes(p.id)) result.push(customMap[p.id] || p);
+      if (!deleted.includes(p.id)) result.push(customMap[p.id] || remoteMap[p.id] || p);
     });
+    // 远程自定义文章中非内置 id 的（不被本地覆盖）
+    remote.forEach(p => {
+      if (!builtinIds.includes(p.id) && !deleted.includes(p.id) && !customMap[p.id]) result.push(p);
+    });
+    // 本地用户文章中非内置、非远程 id 的
     custom.forEach(p => {
-      if (!builtinIds.includes(p.id)) result.push(p);
+      if (!builtinIds.includes(p.id) && !remoteMap[p.id] && !deleted.includes(p.id)) result.push(p);
     });
     return result;
   }
@@ -803,11 +831,12 @@ ${BLOG_CONFIG.bio}。
           <td class="post-title-cell" title="${escapeHtml(post.title)}">${escapeHtml(post.title)}</td>
           <td class="hide-mobile">${post.date}</td>
           <td class="hide-mobile">${post.tags.map(t => `<span class="admin-badge">${escapeHtml(t)}</span>`).join(' ')}</td>
-          <td>${isBuiltin ? '<span class="admin-badge builtin">内置</span>' : '<span class="admin-badge">自建</span>'}</td>
+          <td>${isBuiltin ? '<span class="admin-badge builtin">内置</span>' : (state.customPosts.some(p => p.id === post.id) ? '<span class="admin-badge remote">远程</span>' : '<span class="admin-badge">自建</span>')}</td>
           <td>
             <div class="post-actions">
               <button class="admin-btn" data-edit="${post.id}">编辑</button>
-              <button class="admin-btn danger" data-delete="${post.id}">删除</button>
+              ${state.customPosts.some(p => p.id === post.id) ? '<button class="admin-btn danger" data-delete-gh="' + post.id + '">从GitHub删除</button>' : ''}
+              <button class="admin-btn danger" data-delete="${post.id}">本地删除</button>
             </div>
           </td>
         </tr>
@@ -875,9 +904,37 @@ ${BLOG_CONFIG.bio}。
       btn.addEventListener('click', function () {
         const id = this.dataset.delete;
         const post = findPost(id);
-        if (!confirm(`确定删除文章「${post ? post.title : id}」吗？`)) return;
+        if (!confirm(`确定从本地删除文章「${post ? post.title : id}」吗？（不会影响 GitHub 上的远程版本）`)) return;
         deletePost(id);
         renderAdmin();
+      });
+    });
+
+    // 从 GitHub 删除远程文章（仅当该文章在 posts/custom-posts.json 中）
+    $$('[data-delete-gh]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const id = this.dataset.deleteGh;
+        const post = findPost(id);
+        if (!confirm(`确定从 GitHub 仓库删除文章「${post ? post.title : id}」吗？\n\n所有访客将看不到这篇文章。`)) return;
+        var original = this.textContent;
+        this.disabled = true;
+        this.textContent = '删除中...';
+        var self = this;
+        deletePostFromGithub(id, function (err) {
+          self.disabled = false;
+          self.textContent = original;
+          if (err) {
+            alert('从 GitHub 删除失败：' + err);
+            return;
+          }
+          // 同步：从内存 state.customPosts 移除
+          state.customPosts = state.customPosts.filter(function (p) { return p.id !== id; });
+          // 也从本地 userPosts 移除（如果存在）
+          var local = getCustomPosts().filter(function (p) { return p.id !== id; });
+          saveCustomPosts(local);
+          alert('已从 GitHub 删除。GitHub Pages 约 1-2 分钟后重新部署。');
+          renderAdmin();
+        });
       });
     });
 
@@ -1477,7 +1534,8 @@ ${BLOG_CONFIG.bio}。
             </div>\
           </div>\
           <div class="admin-actions">\
-            <button class="admin-btn primary" id="editor-save">\u4fdd\u5b58\u6587\u7ae0</button>\
+            <button class="admin-btn primary" id="editor-save">\u4fdd\u5b58\u5230\u672c\u5730</button>\
+            <button class="admin-btn" id="editor-push-gh" title="\u9700\u5728\u7ad9\u70b9\u8bbe\u7f6e\u914d\u7f6e GitHub Token">\u63a8\u9001\u5230 GitHub\uff08\u6240\u6709\u8bbf\u5ba2\u53ef\u89c1\uff09</button>\
             <button class="admin-btn" id="editor-cancel">\u53d6\u6d88</button>\
           </div>\
         </div>\
@@ -1771,11 +1829,12 @@ ${BLOG_CONFIG.bio}。
     });
 
     // === 保存 ===
-    $('#editor-save').addEventListener('click', function () {
+    // 收集编辑器表单数据为 postObj（校验失败返回 null）
+    function collectPostData() {
       var title = $('#f-title').value.trim();
       var content = contentEl.value.trim();
-      if (!title) { alert('\u8bf7\u586b\u5199\u6587\u7ae0\u6807\u9898'); $('#f-title').focus(); return; }
-      if (!content) { alert('\u8bf7\u586b\u5199\u6587\u7ae0\u6b63\u6587'); contentEl.focus(); return; }
+      if (!title) { alert('\u8bf7\u586b\u5199\u6587\u7ae0\u6807\u9898'); $('#f-title').focus(); return null; }
+      if (!content) { alert('\u8bf7\u586b\u5199\u6587\u7ae0\u6b63\u6587'); contentEl.focus(); return null; }
 
       var date = $('#f-date').value || today;
       var tags = editorState.tags.slice();
@@ -1790,12 +1849,16 @@ ${BLOG_CONFIG.bio}。
       if (!excerpt) {
         excerpt = content.replace(/[#*`>\-\[\]()!]/g, '').slice(0, 80) + '\u2026';
       }
-
-      var custom = getCustomPosts();
       var id = isNew ? (slugify(title) + '-' + Date.now().toString(36)) : editId;
-      var postObj = { id: id, title: title, date: date, tags: tags, cover: cover, excerpt: excerpt, content: content };
+      return { id: id, title: title, date: date, tags: tags, cover: cover, excerpt: excerpt, content: content };
+    }
 
-      var idx = custom.findIndex(function (p) { return p.id === id; });
+    // \u4fdd\u5b58\u5230\u672c\u5730\uff08\u4ec5\u5f53\u524d\u6d4f\u89c8\u5668\u53ef\u89c1\uff09
+    $('#editor-save').addEventListener('click', function () {
+      var postObj = collectPostData();
+      if (!postObj) return;
+      var custom = getCustomPosts();
+      var idx = custom.findIndex(function (p) { return p.id === postObj.id; });
       if (idx >= 0) custom[idx] = postObj; else custom.push(postObj);
       try {
         saveCustomPosts(custom);
@@ -1803,11 +1866,46 @@ ${BLOG_CONFIG.bio}。
         alert('\u4fdd\u5b58\u5931\u8d25\uff1a\u6587\u7ae0\u5185\u5bb9\uff08\u542b\u56fe\u7247\uff09\u8d85\u51fa\u6d4f\u89c8\u5668\u5b58\u50a8\u9650\u5236\u3002\u8bf7\u51cf\u5c11\u56fe\u7247\u6570\u91cf\u6216\u4f7f\u7528\u66f4\u5c0f\u7684\u56fe\u7247\u540e\u91cd\u8bd5\u3002');
         return;
       }
-
-      saveDeletedIds(getDeletedIds().filter(function (d) { return d !== id; }));
-
+      saveDeletedIds(getDeletedIds().filter(function (d) { return d !== postObj.id; }));
       adminEditing = null;
       renderAdminList();
+    });
+
+    // \u63a8\u9001\u5230 GitHub\uff08\u6240\u6709\u8bbf\u5ba2\u53ef\u89c1\uff09
+    $('#editor-push-gh').addEventListener('click', function () {
+      var postObj = collectPostData();
+      if (!postObj) return;
+      var gh = getGhConfig();
+      if (!gh.token || !gh.owner || !gh.repo) {
+        alert('\u8bf7\u5148\u5728\u7ad9\u70b9\u8bbe\u7f6e\u4e2d\u586b\u5199\u5e76\u4fdd\u5b58 GitHub \u914d\u7f6e\uff08\u7528\u6237\u540d/\u4ed3\u5e93\u540d/Token\uff09');
+        adminEditing = 'settings';
+        renderAdmin();
+        return;
+      }
+      var btn = $('#editor-push-gh');
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '\u63a8\u9001\u4e2d...';
+      pushPostToGithub(postObj, function (err) {
+        btn.disabled = false;
+        btn.textContent = original;
+        if (err) {
+          alert('\u63a8\u9001\u5931\u8d25\uff1a' + err);
+          return;
+        }
+        // \u540c\u65f6\u4fdd\u5b58\u5230\u672c\u5730\u4f5c\u4e3a\u5373\u65f6\u9884\u89c8
+        var custom = getCustomPosts();
+        var idx = custom.findIndex(function (p) { return p.id === postObj.id; });
+        if (idx >= 0) custom[idx] = postObj; else custom.push(postObj);
+        try { saveCustomPosts(custom); } catch (e) {}
+        // \u66f4\u65b0\u5185\u5b58\u4e2d\u7684 state.customPosts
+        var remoteIdx = state.customPosts.findIndex(function (p) { return p.id === postObj.id; });
+        if (remoteIdx >= 0) state.customPosts[remoteIdx] = postObj; else state.customPosts.push(postObj);
+        saveDeletedIds(getDeletedIds().filter(function (d) { return d !== postObj.id; }));
+        alert('\u63a8\u9001\u6210\u529f\uff01GitHub Pages \u7ea6 1-2 \u5206\u949f\u540e\u91cd\u65b0\u90e8\u7f72\uff0c\u6240\u6709\u8bbf\u5ba2\u5237\u65b0\u5373\u53ef\u770b\u5230\u3002');
+        adminEditing = null;
+        renderAdminList();
+      });
     });
 
     $('#editor-cancel').addEventListener('click', function () {
@@ -1818,6 +1916,112 @@ ${BLOG_CONFIG.bio}。
     $('#editor-back').addEventListener('click', function () {
       adminEditing = null;
       renderAdmin();
+    });
+  }
+
+  // \u63a8\u9001/\u66f4\u65b0\u6587\u7ae0\u5230 posts/custom-posts.json
+  function pushPostToGithub(postObj, callback) {
+    var gh = getGhConfig();
+    var url = 'https://api.github.com/repos/' + gh.owner + '/' + gh.repo + '/contents/posts/custom-posts.json';
+    // 1. GET \u62ff sha + \u5f53\u524d\u5185\u5bb9
+    fetch(url + '?ref=' + encodeURIComponent(gh.branch), {
+      headers: {
+        'Authorization': 'Bearer ' + gh.token,
+        'Accept': 'application/vnd.github+json'
+      }
+    }).then(function (r) {
+      if (r.status === 404) return Promise.resolve(null); // \u6587\u4ef6\u4e0d\u5b58\u5728\uff0c\u9996\u6b21\u521b\u5efa
+      if (!r.ok) throw new Error('\u8bfb\u53d6 custom-posts.json \u5931\u8d25 ' + r.status);
+      return r.json();
+    }).then(function (data) {
+      var sha = data && data.sha;
+      var existing = [];
+      if (data && data.content) {
+        try {
+          existing = JSON.parse(atob(data.content.replace(/\n/g, '')));
+          if (!Array.isArray(existing)) existing = [];
+        } catch (e) { existing = []; }
+      }
+      // 2. \u5408\u5e76\u6587\u7ae0\uff1a\u540c id \u8986\u76d6\uff0c\u5426\u5219\u8ffd\u52a0
+      var idx = existing.findIndex(function (p) { return p.id === postObj.id; });
+      if (idx >= 0) existing[idx] = postObj; else existing.push(postObj);
+      var newJson = JSON.stringify(existing, null, 2);
+      var base64 = btoa(unescape(encodeURIComponent(newJson)));
+      // 3. PUT \u56de\u53bb
+      return fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + gh.token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'Update custom post: ' + postObj.id,
+          content: base64,
+          sha: sha,
+          branch: gh.branch
+        })
+      });
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().then(function (j) {
+          throw new Error(j.message || ('HTTP ' + r.status));
+        });
+      }
+      callback(null);
+    }).catch(function (err) {
+      callback(err.message || err.toString());
+    });
+  }
+
+  // 从 posts/custom-posts.json 中移除指定 id 的文章
+  function deletePostFromGithub(id, callback) {
+    var gh = getGhConfig();
+    var url = 'https://api.github.com/repos/' + gh.owner + '/' + gh.repo + '/contents/posts/custom-posts.json';
+    fetch(url + '?ref=' + encodeURIComponent(gh.branch), {
+      headers: {
+        'Authorization': 'Bearer ' + gh.token,
+        'Accept': 'application/vnd.github+json'
+      }
+    }).then(function (r) {
+      if (r.status === 404) throw new Error('custom-posts.json 不存在');
+      if (!r.ok) throw new Error('读取 custom-posts.json 失败 ' + r.status);
+      return r.json();
+    }).then(function (data) {
+      var sha = data && data.sha;
+      var existing = [];
+      if (data && data.content) {
+        try {
+          existing = JSON.parse(atob(data.content.replace(/\n/g, '')));
+          if (!Array.isArray(existing)) existing = [];
+        } catch (e) { existing = []; }
+      }
+      var filtered = existing.filter(function (p) { return p.id !== id; });
+      var newJson = JSON.stringify(filtered, null, 2);
+      var base64 = btoa(unescape(encodeURIComponent(newJson)));
+      return fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + gh.token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'Remove custom post: ' + id,
+          content: base64,
+          sha: sha,
+          branch: gh.branch
+        })
+      });
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().then(function (j) {
+          throw new Error(j.message || ('HTTP ' + r.status));
+        });
+      }
+      callback(null);
+    }).catch(function (err) {
+      callback(err.message || err.toString());
     });
   }
 
@@ -2312,7 +2516,10 @@ ${BLOG_CONFIG.bio}。
     initTheme();
     initSearch();
     initInteractions();
-    router();
+    // 先加载远程 custom-posts.json（所有访客共享的自定义文章），再首次渲染
+    loadCustomPosts().then(function () {
+      router();
+    });
   }
 
   // DOM 就绪后初始化
