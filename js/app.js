@@ -11,7 +11,8 @@
   const state = {
     route: '/',
     searchQuery: '',
-    heroScrollHandler: null  // 保存当前的 hero 滚动监听器，便于下次渲染前移除
+    heroScrollHandler: null,  // 保存当前的 hero 滚动监听器，便于下次渲染前移除
+    heroWheelHandler: null    // 保存当前的 hero 滚轮劫持监听器
   };
 
   // === 主题配置（从 localStorage 恢复；背景默认值取自 BLOG_CONFIG.background） ===
@@ -306,11 +307,12 @@
 
     // 向下箭头：点击平滑滚动到文章区
     var scrollBtn = $('#scroll-down-btn');
+    function scrollToArticles() {
+      var target = $('#articles-section');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     if (scrollBtn) {
-      scrollBtn.addEventListener('click', function () {
-        var target = $('#articles-section');
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      scrollBtn.addEventListener('click', scrollToArticles);
     }
 
     // 滚动时让 hero 渐出上移（基于滚动距离的视差效果）
@@ -320,6 +322,10 @@
       if (state.heroScrollHandler) {
         window.removeEventListener('scroll', state.heroScrollHandler);
         state.heroScrollHandler = null;
+      }
+      if (state.heroWheelHandler) {
+        window.removeEventListener('wheel', state.heroWheelHandler);
+        state.heroWheelHandler = null;
       }
       function handleHeroScroll() {
         var scrollY = window.scrollY || window.pageYOffset;
@@ -331,6 +337,23 @@
       window.addEventListener('scroll', handleHeroScroll, { passive: true });
       state.heroScrollHandler = handleHeroScroll;
       handleHeroScroll();
+
+      // 劫持滚轮：在 hero 区向下滑一下就直接平滑滚到文章区
+      var isAnimating = false;
+      function handleWheel(e) {
+        var scrollY = window.scrollY || window.pageYOffset;
+        // 只在靠近 hero 顶部时劫持向下滚动
+        if (e.deltaY > 0 && scrollY < 80 && !isAnimating) {
+          e.preventDefault();
+          isAnimating = true;
+          scrollToArticles();
+          // 动画期间锁定，1.2s 后释放（防止多次触发）
+          setTimeout(function () { isAnimating = false; }, 1200);
+        }
+      }
+      // 必须 non-passive 才能 preventDefault
+      window.addEventListener('wheel', handleWheel, { passive: false });
+      state.heroWheelHandler = handleWheel;
     }
 
     // 文章卡片 + 标题进入视口时淡入上移
