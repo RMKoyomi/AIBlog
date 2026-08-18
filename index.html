@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-accent="blue">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="我的分享空间 - 个人博客">
+  <title>我的分享空间</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Highlight.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 背景层 -->
+  <div id="bg-layer" class="bg-layer"></div>
+
+  <!-- 阅读进度条 -->
+  <div id="reading-progress" class="reading-progress"></div>
+
+  <!-- 头部导航 -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <a href="#/" class="logo">
+        <span class="logo-icon">&#9998;</span>
+        <span class="logo-text">我的分享空间</span>
+      </a>
+      <nav class="nav">
+        <a href="#/" class="nav-link" data-route="/">首页</a>
+        <a href="#/tags" class="nav-link" data-route="/tags">标签</a>
+        <a href="#/about" class="nav-link" data-route="/about">关于</a>
+        <a href="#/admin" class="nav-link" data-route="/admin">管理</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="search-btn" title="搜索" aria-label="搜索">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <button class="icon-btn" id="theme-btn" title="切换主题" aria-label="切换主题">
+          <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button class="icon-btn" id="customize-btn" title="装修网站" aria-label="装修网站">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="10" cy="20" r="2.5"/><path d="M12 2a10 10 0 1 0 10 10c0-1.1-1.1-2-2.5-2s-2.5.9-2.5 2-1.1 2-2.5 2-2.5-.9-2.5-2"/></svg>
+        </button>
+        <button class="icon-btn menu-toggle" id="menu-toggle" title="菜单" aria-label="菜单">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 搜索弹层 -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="搜索文章..." autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+      <button class="search-close" id="search-close">ESC 关闭</button>
+    </div>
+  </div>
+
+  <!-- 主内容区 -->
+  <main class="main" id="main">
+    <!-- 动态渲染 -->
+  </main>
+
+  <!-- 回到顶部 -->
+  <button class="back-to-top" id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+
+  <!-- 定制面板 -->
+  <aside class="customizer" id="customizer">
+    <div class="customizer-header">
+      <h3>网站装修</h3>
+      <button class="customizer-close" id="customizer-close">&times;</button>
+    </div>
+    <div class="customizer-body">
+      <!-- 主题模式 -->
+      <div class="custom-group">
+        <label class="custom-label">主题模式</label>
+        <div class="custom-options" data-group="mode">
+          <button class="custom-option active" data-value="dark">深色</button>
+          <button class="custom-option" data-value="light">浅色</button>
+        </div>
+      </div>
+
+      <!-- 强调色 -->
+      <div class="custom-group">
+        <label class="custom-label">主题色</label>
+        <div class="custom-options color-options" data-group="accent">
+          <button class="color-swatch active" data-value="blue" style="--swatch:#3b82f6" title="蓝色"></button>
+          <button class="color-swatch" data-value="purple" style="--swatch:#a855f7" title="紫色"></button>
+          <button class="color-swatch" data-value="green" style="--swatch:#22c55e" title="绿色"></button>
+          <button class="color-swatch" data-value="orange" style="--swatch:#f97316" title="橙色"></button>
+          <button class="color-swatch" data-value="rose" style="--swatch:#f43f5e" title="玫红"></button>
+          <button class="color-swatch" data-value="teal" style="--swatch:#14b8a6" title="青色"></button>
+        </div>
+      </div>
+
+      <!-- 背景风格 -->
+      <div class="custom-group">
+        <label class="custom-label">背景风格</label>
+        <div class="custom-options bg-options" data-group="background">
+          <button class="custom-option active" data-value="none">纯色</button>
+          <button class="custom-option" data-value="sunset">日落渐变</button>
+          <button class="custom-option" data-value="ocean">海洋渐变</button>
+          <button class="custom-option" data-value="forest">森林渐变</button>
+          <button class="custom-option" data-value="aurora">极光</button>
+          <button class="custom-option" data-value="dots">点阵</button>
+          <button class="custom-option" data-value="grid">网格</button>
+          <button class="custom-option" data-value="custom">自定义</button>
+        </div>
+      </div>
+
+      <!-- 自定义背景 -->
+      <div class="custom-group" id="bg-url-group" style="display:none">
+        <div class="bg-tabs">
+          <button class="bg-tab active" data-bg-tab="upload">本地上传</button>
+          <button class="bg-tab" data-bg-tab="url">图片链接</button>
+        </div>
+        <!-- 本地上传面板 -->
+        <div class="bg-panel" id="bg-upload-panel">
+          <div class="bg-upload-zone" id="bg-upload-zone">
+            <div class="bg-upload-icon">&#128247;</div>
+            <div class="bg-upload-text">点击选择图片或拖拽到此</div>
+            <div class="bg-upload-hint">推荐 1920×1080，JPG/PNG/WebP，&lt;5MB</div>
+            <input type="file" id="bg-file-input" accept="image/*" style="display:none">
+          </div>
+          <div class="bg-upload-preview" id="bg-upload-preview" style="display:none">
+            <div class="bg-preview-thumb" id="bg-preview-thumb"></div>
+            <div class="bg-preview-info">
+              <span class="bg-preview-name" id="bg-preview-name"></span>
+              <span class="bg-preview-size" id="bg-preview-size"></span>
+            </div>
+            <button class="bg-remove-btn" id="bg-remove-btn" title="移除图片">&times;</button>
+          </div>
+        </div>
+        <!-- URL面板 -->
+        <div class="bg-panel" id="bg-url-panel" style="display:none">
+          <input type="text" class="custom-input" id="bg-url-input" placeholder="https://example.com/bg.jpg">
+          <button class="custom-apply-btn" id="bg-url-apply">应用</button>
+        </div>
+      </div>
+
+      <!-- 站点文案 -->
+      <div class="custom-group">
+        <label class="custom-label">站点文案</label>
+        <input type="text" class="custom-input" id="site-name-input" placeholder="站点名称">
+        <input type="text" class="custom-input" id="hero-sub-input" placeholder="首页副标题">
+        <input type="text" class="custom-input" id="section-title-input" placeholder="文章区标题（如：最新文章）">
+        <input type="text" class="custom-input" id="footer-text-input" placeholder="页脚文字">
+        <button class="custom-apply-btn" id="site-text-apply">应用文案</button>
+        <div class="admin-hint">留空则恢复默认文案</div>
+      </div>
+
+      <!-- 布局设置 -->
+      <div class="custom-group">
+        <label class="custom-label">卡片布局</label>
+        <div class="custom-options" data-group="layout">
+          <button class="custom-option active" data-value="grid">网格</button>
+          <button class="custom-option" data-value="list">列表</button>
+        </div>
+        <label class="custom-label" style="margin-top:14px">每行卡片数</label>
+        <div class="custom-options" data-group="columns">
+          <button class="custom-option active" data-value="auto">自动</button>
+          <button class="custom-option" data-value="1">1 列</button>
+          <button class="custom-option" data-value="2">2 列</button>
+          <button class="custom-option" data-value="3">3 列</button>
+        </div>
+      </div>
+
+      <!-- 背景透明度 -->
+      <div class="custom-group">
+        <label class="custom-label">内容透明度: <span id="opacity-value">95</span>%</label>
+        <input type="range" class="custom-range" id="opacity-slider" min="50" max="100" value="95">
+      </div>
+
+      <!-- 字体大小 -->
+      <div class="custom-group">
+        <label class="custom-label">正文字号: <span id="fontsize-value">16</span>px</label>
+        <input type="range" class="custom-range" id="fontsize-slider" min="14" max="20" value="16">
+      </div>
+
+      <!-- 重置 -->
+      <button class="custom-reset" id="custom-reset">恢复默认设置</button>
+    </div>
+  </aside>
+  <div class="customizer-overlay" id="customizer-overlay"></div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>&copy; <span id="year"></span> <span id="footer-text">我的分享空间 &middot; Powered by Markdown</span></p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
