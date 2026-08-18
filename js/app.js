@@ -50,6 +50,30 @@
     avatar: 'site-avatar'
   };
 
+  // GitHub 配置（用于网页上传头像/文章等推送到仓库）
+  const GH_KEYS = {
+    token: 'gh-token',
+    owner: 'gh-owner',
+    repo: 'gh-repo',
+    branch: 'gh-branch'
+  };
+
+  function getGhConfig() {
+    return {
+      token: localStorage.getItem(GH_KEYS.token) || '',
+      owner: localStorage.getItem(GH_KEYS.owner) || '',
+      repo: localStorage.getItem(GH_KEYS.repo) || '',
+      branch: localStorage.getItem(GH_KEYS.branch) || 'main'
+    };
+  }
+
+  function saveGhConfig(cfg) {
+    localStorage.setItem(GH_KEYS.token, cfg.token || '');
+    localStorage.setItem(GH_KEYS.owner, cfg.owner || '');
+    localStorage.setItem(GH_KEYS.repo, cfg.repo || '');
+    localStorage.setItem(GH_KEYS.branch, cfg.branch || 'main');
+  }
+
   function getSite() {
     return {
       siteName: localStorage.getItem(SITE_KEYS.siteName) || BLOG_CONFIG.siteName,
@@ -630,10 +654,12 @@ ${BLOG_CONFIG.bio}。
   // ========================================
   // 页面渲染：管理页（文章管理）
   // ========================================
-  let adminEditing = null; // null=列表, 'new'=新建, 其他=编辑的文章 id
+  let adminEditing = null; // null=列表, 'new'=新建, 'settings'=站点设置, 其他=编辑的文章 id
 
   function renderAdmin() {
-    if (adminEditing !== null) {
+    if (adminEditing === 'settings') {
+      renderAdminSettings();
+    } else if (adminEditing !== null) {
       renderAdminEditor(adminEditing);
     } else {
       renderAdminList();
@@ -669,6 +695,7 @@ ${BLOG_CONFIG.bio}。
           <h2 class="section-title" style="margin-bottom:0">文章管理 <span style="font-size:0.85rem;color:var(--text-tertiary);font-weight:400">共 ${posts.length} 篇</span></h2>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             ${deletedCount > 0 ? `<button class="admin-btn" id="restore-builtin">恢复内置文章 (${deletedCount})</button>` : ''}
+            <button class="admin-btn" id="site-settings-btn">站点设置</button>
             <button class="admin-btn primary" id="new-post-btn">+ 新建文章</button>
           </div>
         </div>
@@ -694,6 +721,11 @@ ${BLOG_CONFIG.bio}。
 
     $('#new-post-btn').addEventListener('click', function () {
       adminEditing = 'new';
+      renderAdmin();
+    });
+
+    $('#site-settings-btn').addEventListener('click', function () {
+      adminEditing = 'settings';
       renderAdmin();
     });
 
@@ -753,6 +785,292 @@ ${BLOG_CONFIG.bio}。
     { name: 'teal',   gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
     { name: 'rose',   gradient: 'linear-gradient(135deg, #ff6b6b, #ee5a6f)' }
   ];
+
+  // ========================================
+  // 页面渲染：站点设置（GitHub Token、头像上传）
+  // ========================================
+  function renderAdminSettings() {
+    var gh = getGhConfig();
+    var site = getSite();
+    var hasToken = !!gh.token && !!gh.owner && !!gh.repo;
+    var previewSrc = site.avatar;
+
+    main.innerHTML = `
+      <div class="admin-page">
+        <div class="admin-toolbar">
+          <h2 class="section-title" style="margin-bottom:0">站点设置</h2>
+          <button class="admin-btn" id="settings-back">\u2190 返回列表</button>
+        </div>
+        <div class="admin-editor">
+          <div class="admin-field">
+            <label>当前头像</label>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+              <div class="about-avatar" style="width:96px;height:96px;font-size:2.4rem">
+                ${previewSrc ? '<img src="' + previewSrc + '" alt="avatar">' : BLOG_CONFIG.author.charAt(0)}
+              </div>
+              <div style="flex:1">
+                <p class="admin-hint" style="margin:0 0 4px 0">这是访客打开"关于"页看到的头像。</p>
+                <p class="admin-hint" style="margin:0">来源：${localStorage.getItem(SITE_KEYS.avatar) ? '本地（仅你浏览器）' : 'data.js 默认'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-field">
+            <label>上传新头像（推送到 GitHub 仓库，所有访客可见）</label>
+            <div class="bg-upload-zone" id="avatar-gh-upload-zone" style="${hasToken ? '' : 'opacity:0.5;pointer-events:none'}">
+              <div class="bg-upload-icon">\ud83d\udcf7</div>
+              <div class="bg-upload-text">${hasToken ? '点击选择图片或拖拽到此' : '请先在下方填写并保存 GitHub 配置'}</div>
+              <div class="admin-hint" style="margin-top:4px">建议正方形 JPG/PNG/WebP，小于 1MB；上传后约 1 分钟生效</div>
+              <input type="file" id="avatar-gh-file-input" accept="image/*" style="display:none">
+            </div>
+            <div id="avatar-gh-status" style="margin-top:8px"></div>
+          </div>
+
+          <hr class="article-divider" style="background:var(--border-color)">
+
+          <div class="admin-field">
+            <label>GitHub 仓库配置</label>
+            <div class="admin-field-row">
+              <div class="admin-field" style="margin-bottom:0">
+                <input type="text" class="admin-input" id="gh-owner" placeholder="GitHub 用户名" value="${escapeHtml(gh.owner)}">
+              </div>
+              <div class="admin-field" style="margin-bottom:0">
+                <input type="text" class="admin-input" id="gh-repo" placeholder="仓库名（如 blog）" value="${escapeHtml(gh.repo)}">
+              </div>
+            </div>
+            <div class="admin-field-row" style="margin-top:12px">
+              <div class="admin-field" style="margin-bottom:0">
+                <input type="text" class="admin-input" id="gh-branch" placeholder="分支名（默认 main）" value="${escapeHtml(gh.branch)}">
+              </div>
+              <div class="admin-field" style="margin-bottom:0">
+                <input type="password" class="admin-input" id="gh-token" placeholder="Personal Access Token" value="${escapeHtml(gh.token)}">
+              </div>
+            </div>
+            <div class="admin-hint">
+              获取 Token：GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token。
+              权限只勾选 <strong>当前仓库</strong> 的 <strong>Contents: Read and write</strong>。
+              Token 仅保存在你浏览器 localStorage，不发送到任何第三方。
+            </div>
+          </div>
+
+          <div class="admin-actions">
+            <button class="admin-btn primary" id="gh-save">保存配置</button>
+            <button class="admin-btn" id="gh-test">测试连接</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    $('#settings-back').addEventListener('click', function () {
+      adminEditing = null;
+      renderAdmin();
+    });
+
+    $('#gh-save').addEventListener('click', function () {
+      saveGhConfig({
+        owner: $('#gh-owner').value.trim(),
+        repo: $('#gh-repo').value.trim(),
+        branch: $('#gh-branch').value.trim() || 'main',
+        token: $('#gh-token').value.trim()
+      });
+      alert('GitHub 配置已保存');
+      renderAdmin();
+    });
+
+    $('#gh-test').addEventListener('click', function () {
+      var cfg = {
+        owner: $('#gh-owner').value.trim(),
+        repo: $('#gh-repo').value.trim(),
+        branch: $('#gh-branch').value.trim() || 'main',
+        token: $('#gh-token').value.trim()
+      };
+      if (!cfg.owner || !cfg.repo || !cfg.token) {
+        alert('请先填写用户名、仓库名、Token');
+        return;
+      }
+      var statusEl = $('#avatar-gh-status');
+      statusEl.innerHTML = '<p class="admin-hint" style="margin:0">测试中...</p>';
+      fetch('https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo, {
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json'
+        }
+      }).then(function (r) {
+        if (r.ok) {
+          statusEl.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-green)">✓ 连接成功，仓库可访问</p>';
+        } else if (r.status === 404) {
+          statusEl.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ 仓库不存在或无权访问</p>';
+        } else if (r.status === 401) {
+          statusEl.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ Token 无效</p>';
+        } else {
+          statusEl.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ 错误 ' + r.status + '</p>';
+        }
+      }).catch(function (err) {
+        statusEl.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ 网络错误：' + err.message + '</p>';
+      });
+    });
+
+    // 头像上传到 GitHub
+    var ghUploadZone = $('#avatar-gh-upload-zone');
+    var ghFileInput = $('#avatar-gh-file-input');
+    var statusBox = $('#avatar-gh-status');
+
+    function handleGhAvatarUpload(file) {
+      if (!hasToken) {
+        alert('请先填写并保存 GitHub 配置');
+        return;
+      }
+      if (!file || !file.type.startsWith('image/')) {
+        alert('请选择图片文件');
+        return;
+      }
+      if (file.size > 1024 * 1024) {
+        if (!confirm('图片超过 1MB，可能上传较慢。是否继续？')) return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        // base64 数据部分（去掉 data:image/xxx;base64, 前缀）
+        var base64 = dataUrl.split(',')[1];
+        var mime = file.type;
+        var ext = mime.split('/')[1] || 'jpg';
+        var path = 'assets/avatar.' + ext;
+        uploadFileToGithub(path, base64, file, dataUrl);
+      };
+      reader.onerror = function () { alert('读取图片失败'); };
+      reader.readAsDataURL(file);
+    }
+
+    function uploadFileToGithub(path, base64, file, dataUrl) {
+      statusBox.innerHTML = '<p class="admin-hint" style="margin:0">上传中...（可能需要 10-30 秒）</p>';
+      var cfg = getGhConfig();
+      var url = 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + '/contents/' + path;
+      // 1. 先 GET 拿 sha（如果文件已存在需要带 sha 才能更新）
+      fetch(url + '?ref=' + encodeURIComponent(cfg.branch), {
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json'
+        }
+      }).then(function (r) {
+        if (r.status === 404) return Promise.resolve(null); // 文件不存在，新建
+        if (!r.ok) throw new Error('获取文件失败 ' + r.status);
+        return r.json();
+      }).then(function (existing) {
+        // 2. PUT 上传
+        var body = {
+          message: 'Update avatar via admin',
+          content: base64,
+          branch: cfg.branch
+        };
+        if (existing && existing.sha) body.sha = existing.sha;
+        return fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + cfg.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) {
+            throw new Error(j.message || ('HTTP ' + r.status));
+          });
+        }
+        return r.json();
+      }).then(function (res) {
+        // 上传成功：本地也存一份作为立即生效的预览
+        try { localStorage.setItem(SITE_KEYS.avatar, dataUrl); } catch (e) {}
+        statusBox.innerHTML =
+          '<p class="admin-hint" style="margin:0;color:var(--accent-green)">✓ 图片已推送：' + escapeHtml(res.commit?.html_url || '') + '</p>' +
+          '<p class="admin-hint" style="margin:4px 0 0 0">正在更新 js/data.js 引用...</p>';
+        // 3. 自动更新 js/data.js 让 avatar 字段指向仓库内文件，所有访客才能看到
+        var fileRef = './' + path + '?v=' + Date.now();
+        updateDataJsAvatarRef(cfg, fileRef, statusBox);
+      }).catch(function (err) {
+        statusBox.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ 上传失败：' + escapeHtml(err.message) + '</p>';
+      });
+    }
+
+    // 通过 GitHub Contents API 把 js/data.js 中的 avatar 字段值改为新引用
+    function updateDataJsAvatarRef(cfg, fileRef, statusBox) {
+      var dataUrl = 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + '/contents/js/data.js';
+      fetch(dataUrl + '?ref=' + encodeURIComponent(cfg.branch), {
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json'
+        }
+      }).then(function (r) {
+        if (!r.ok) throw new Error('读取 data.js 失败 ' + r.status);
+        return r.json();
+      }).then(function (data) {
+        var content = atob(data.content.replace(/\n/g, ''));
+        var newRef = "avatar: '" + fileRef + "'";
+        // 已包含同引用则跳过
+        if (content.indexOf(newRef) >= 0) {
+          statusBox.innerHTML +=
+            '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-green)">✓ data.js 已指向最新头像，无需重复更新</p>' +
+            '<p class="admin-hint" style="margin:4px 0 0 0">GitHub Pages 将在约 1 分钟后重新部署。</p>';
+          return;
+        }
+        // 替换 avatar: 'xxx' 行（含可选前导空格）
+        var newContent = content.replace(
+          /(\s*)avatar:\s*'[^']*'/,
+          '$1' + newRef
+        );
+        if (newContent === content) {
+          throw new Error('未在 data.js 找到 avatar 字段');
+        }
+        var base64 = btoa(unescape(encodeURIComponent(newContent)));
+        return fetch(dataUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + cfg.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Update data.js: avatar reference',
+            content: base64,
+            sha: data.sha,
+            branch: cfg.branch
+          })
+        }).then(function (r) {
+          if (!r.ok) {
+            return r.json().then(function (j) {
+              throw new Error(j.message || ('HTTP ' + r.status));
+            });
+          }
+          statusBox.innerHTML +=
+            '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-green)">✓ data.js 已更新</p>' +
+            '<p class="admin-hint" style="margin:4px 0 0 0">GitHub Pages 将在约 1 分钟后重新部署。部署完成后所有访客都能看到新头像。</p>';
+          setTimeout(renderAdmin, 1500);
+        });
+      }).catch(function (err) {
+        statusBox.innerHTML +=
+          '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-rose)">⚠ 图片已推送，但更新 data.js 失败：' + escapeHtml(err.message) + '。请手动将 js/data.js 的 avatar 字段改为 \'' + fileRef + '\' 并 commit。</p>';
+      });
+    }
+
+    ghUploadZone.addEventListener('click', function () { ghFileInput.click(); });
+    ghFileInput.addEventListener('change', function () {
+      if (this.files && this.files[0]) handleGhAvatarUpload(this.files[0]);
+      this.value = '';
+    });
+    ghUploadZone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      this.classList.add('dragover');
+    });
+    ghUploadZone.addEventListener('dragleave', function () {
+      this.classList.remove('dragover');
+    });
+    ghUploadZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      this.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleGhAvatarUpload(e.dataTransfer.files[0]);
+    });
+  }
 
   function renderAdminEditor(editId) {
     var isNew = editId === 'new';
