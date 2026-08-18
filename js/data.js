@@ -16,9 +16,9 @@ const BLOG_CONFIG = {
   author: 'RMKoyomi',
   bio: '热爱技术与生活，分享所思所学',
   // 默认博主头像（公网 URL，所有访客可见；可替换为自己的图片链接）
-  avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20professional%20headshot%20avatar%20photo%20of%20a%20friendly%20tech%20blogger%2C%20soft%20studio%20lighting%2C%20neutral%20gray%20background%2C%20sharp%20focus%2C%20high%20quality&image_size=square_hd',
+  avatar: './assets/avatar.gif?v=20260818',
   // 默认全局背景图（公网 URL，所有访客可见；可在管理页上传新背景图自动更新）
-  background: '',
+  background: './assets/bg.jpeg?v=20260818',
   // 管理页访问密码（修改后需 commit + push 让所有人重新需要新密码登录）
   adminPassword: 'lyf19980818',
   // 关于页面的社交媒体链接
