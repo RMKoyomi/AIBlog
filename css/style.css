@@ -433,7 +433,7 @@ img { max-width: 100%; height: auto; }
 }
 .scroll-down-btn {
   position: absolute;
-  bottom: 24px;
+  bottom: 64px;
   left: 50%;
   transform: translateX(-50%);
   width: 44px;
@@ -460,6 +460,36 @@ img { max-width: 100%; height: auto; }
 @keyframes hero-scroll-bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(4px); }
+}
+/* hero 滚动淡出 */
+.hero {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  will-change: opacity, transform;
+}
+.hero.scrolling-out {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+/* 文章卡片进入视口时的淡入上移动画 */
+.article-card {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  will-change: opacity, transform;
+}
+.article-card.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* 文章区标题也加淡入 */
+.section-title {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.section-title.in-view {
+  opacity: 1;
+  transform: translateY(0);
 }
 @media (max-width: 768px) {
   .hero-avatar { width: 96px; height: 96px; }

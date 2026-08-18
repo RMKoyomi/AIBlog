@@ -10,7 +10,8 @@
   // === 应用状态 ===
   const state = {
     route: '/',
-    searchQuery: ''
+    searchQuery: '',
+    heroScrollHandler: null  // 保存当前的 hero 滚动监听器，便于下次渲染前移除
   };
 
   // === 主题配置（从 localStorage 恢复；背景默认值取自 BLOG_CONFIG.background） ===
@@ -310,6 +311,43 @@
         var target = $('#articles-section');
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+    }
+
+    // 滚动时让 hero 渐出上移（基于滚动距离的视差效果）
+    var heroEl = main.querySelector('.hero');
+    if (heroEl) {
+      // 清理上一次的滚动监听器，避免堆积
+      if (state.heroScrollHandler) {
+        window.removeEventListener('scroll', state.heroScrollHandler);
+        state.heroScrollHandler = null;
+      }
+      function handleHeroScroll() {
+        var scrollY = window.scrollY || window.pageYOffset;
+        var heroHeight = heroEl.offsetHeight;
+        var progress = heroHeight > 0 ? Math.min(scrollY / heroHeight, 1) : 0;
+        heroEl.style.opacity = (1 - progress * 0.9).toString();
+        heroEl.style.transform = 'translateY(' + (-progress * 40) + 'px)';
+      }
+      window.addEventListener('scroll', handleHeroScroll, { passive: true });
+      state.heroScrollHandler = handleHeroScroll;
+      handleHeroScroll();
+    }
+
+    // 文章卡片 + 标题进入视口时淡入上移
+    var revealEls = main.querySelectorAll('.article-card, #articles-section');
+    if (revealEls.length && 'IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      revealEls.forEach(function (el) { io.observe(el); });
+    } else {
+      // 不支持 IntersectionObserver 的浏览器直接显示
+      revealEls.forEach(function (el) { el.classList.add('in-view'); });
     }
   }
 
