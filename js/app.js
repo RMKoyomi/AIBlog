@@ -13,13 +13,16 @@
     searchQuery: ''
   };
 
-  // === 主题配置（从 localStorage 恢复） ===
+  // === 主题配置（从 localStorage 恢复；背景默认值取自 BLOG_CONFIG.background） ===
   var storedBgData = localStorage.getItem('blog-bg-data');
+  // 访客未主动选过背景风格时，若有全局背景图（BLOG_CONFIG.background）则应用它
+  var hasUserBgChoice = localStorage.getItem('blog-bg');
+  var globalBg = BLOG_CONFIG.background;
   let theme = {
     mode: localStorage.getItem('blog-mode') || 'dark',
     accent: localStorage.getItem('blog-accent') || 'blue',
-    background: localStorage.getItem('blog-bg') || 'none',
-    bgUrl: storedBgData || localStorage.getItem('blog-bg-url') || '',
+    background: hasUserBgChoice ? hasUserBgChoice : (globalBg ? 'custom' : 'none'),
+    bgUrl: storedBgData || localStorage.getItem('blog-bg-url') || globalBg || '',
     opacity: localStorage.getItem('blog-opacity') || '95',
     fontSize: localStorage.getItem('blog-fontsize') || '16'
   };
@@ -654,16 +657,60 @@ ${BLOG_CONFIG.bio}。
   // ========================================
   // 页面渲染：管理页（文章管理）
   // ========================================
-  let adminEditing = null; // null=列表, 'new'=新建, 'settings'=站点设置, 其他=编辑的文章 id
+  let adminEditing = null; // null=列表, 'new'=新建, 'settings'=站点设置, 'customize'=网站装修, 其他=编辑的文章 id
+
+  // 管理页鉴权（密码保存在 sessionStorage，关闭标签页即失效）
+  function isAdminAuthed() {
+    return sessionStorage.getItem('admin-authed') === '1';
+  }
 
   function renderAdmin() {
+    if (!isAdminAuthed()) {
+      renderAdminLogin();
+      return;
+    }
     if (adminEditing === 'settings') {
       renderAdminSettings();
+    } else if (adminEditing === 'customize') {
+      renderAdminCustomize();
     } else if (adminEditing !== null) {
       renderAdminEditor(adminEditing);
     } else {
       renderAdminList();
     }
+  }
+
+  function renderAdminLogin() {
+    main.innerHTML = `
+      <div class="admin-page" style="max-width:420px">
+        <div class="admin-card" style="padding:32px">
+          <h2 class="section-title" style="margin-bottom:24px">管理登录</h2>
+          <div class="admin-field">
+            <input type="password" class="admin-input" id="admin-password-input" placeholder="请输入管理密码" autocomplete="current-password" style="font-size:1rem">
+          </div>
+          <button class="admin-btn primary" id="admin-login-btn" style="width:100%;justify-content:center;padding:10px">登录</button>
+          <p class="admin-hint" style="margin-top:16px;text-align:center">默认密码 admin123，可在 js/data.js 的 BLOG_CONFIG.adminPassword 修改</p>
+        </div>
+      </div>
+    `;
+    var pwdInput = $('#admin-password-input');
+    pwdInput.focus();
+    function tryLogin() {
+      var pwd = pwdInput.value;
+      if (pwd === BLOG_CONFIG.adminPassword) {
+        sessionStorage.setItem('admin-authed', '1');
+        adminEditing = null;
+        renderAdmin();
+      } else {
+        pwdInput.value = '';
+        pwdInput.placeholder = '密码错误，请重新输入';
+        pwdInput.focus();
+      }
+    }
+    $('#admin-login-btn').addEventListener('click', tryLogin);
+    pwdInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tryLogin();
+    });
   }
 
   function renderAdminList() {
@@ -695,6 +742,7 @@ ${BLOG_CONFIG.bio}。
           <h2 class="section-title" style="margin-bottom:0">文章管理 <span style="font-size:0.85rem;color:var(--text-tertiary);font-weight:400">共 ${posts.length} 篇</span></h2>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             ${deletedCount > 0 ? `<button class="admin-btn" id="restore-builtin">恢复内置文章 (${deletedCount})</button>` : ''}
+            <button class="admin-btn" id="customize-open-btn">网站装修</button>
             <button class="admin-btn" id="site-settings-btn">站点设置</button>
             <button class="admin-btn primary" id="new-post-btn">+ 新建文章</button>
           </div>
@@ -727,6 +775,15 @@ ${BLOG_CONFIG.bio}。
     $('#site-settings-btn').addEventListener('click', function () {
       adminEditing = 'settings';
       renderAdmin();
+    });
+
+    $('#customize-open-btn').addEventListener('click', function () {
+      var customizer = $('#customizer');
+      var customizerOverlay = $('#customizer-overlay');
+      if (customizer && customizerOverlay) {
+        customizer.classList.add('open');
+        customizerOverlay.classList.add('active');
+      }
     });
 
     $$('[data-edit]').forEach(btn => {
@@ -824,6 +881,17 @@ ${BLOG_CONFIG.bio}。
               <input type="file" id="avatar-gh-file-input" accept="image/*" style="display:none">
             </div>
             <div id="avatar-gh-status" style="margin-top:8px"></div>
+          </div>
+
+          <div class="admin-field">
+            <label>上传新背景图（推送到 GitHub 仓库，所有访客可见）</label>
+            <div class="bg-upload-zone" id="bg-gh-upload-zone" style="${hasToken ? '' : 'opacity:0.5;pointer-events:none'}">
+              <div class="bg-upload-icon">\ud83c\udf10</div>
+              <div class="bg-upload-text">${hasToken ? '点击选择图片或拖拽到此' : '请先在下方填写并保存 GitHub 配置'}</div>
+              <div class="admin-hint" style="margin-top:4px">建议横向 1920x1080，JPG/WebP，小于 2MB；上传后约 1 分钟生效</div>
+              <input type="file" id="bg-gh-file-input" accept="image/*" style="display:none">
+            </div>
+            <div id="bg-gh-status" style="margin-top:8px"></div>
           </div>
 
           <hr class="article-divider" style="background:var(--border-color)">
@@ -1069,6 +1137,161 @@ ${BLOG_CONFIG.bio}。
       e.preventDefault();
       this.classList.remove('dragover');
       if (e.dataTransfer.files && e.dataTransfer.files[0]) handleGhAvatarUpload(e.dataTransfer.files[0]);
+    });
+
+    // === 背景图上传到 GitHub ===
+    var bgUploadZone = $('#bg-gh-upload-zone');
+    var bgFileInput = $('#bg-gh-file-input');
+    var bgStatusBox = $('#bg-gh-status');
+
+    function handleGhBgUpload(file) {
+      if (!hasToken) {
+        alert('请先填写并保存 GitHub 配置');
+        return;
+      }
+      if (!file || !file.type.startsWith('image/')) {
+        alert('请选择图片文件');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        if (!confirm('图片超过 2MB，可能上传较慢。是否继续？')) return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        var base64 = dataUrl.split(',')[1];
+        var ext = file.type.split('/')[1] || 'jpg';
+        var path = 'assets/bg.' + ext;
+        uploadBgToGithub(path, base64, file, dataUrl);
+      };
+      reader.onerror = function () { alert('读取图片失败'); };
+      reader.readAsDataURL(file);
+    }
+
+    function uploadBgToGithub(path, base64, file, dataUrl) {
+      bgStatusBox.innerHTML = '<p class="admin-hint" style="margin:0">上传中...（可能需要 10-30 秒）</p>';
+      var cfg = getGhConfig();
+      var url = 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + '/contents/' + path;
+      fetch(url + '?ref=' + encodeURIComponent(cfg.branch), {
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json'
+        }
+      }).then(function (r) {
+        if (r.status === 404) return Promise.resolve(null);
+        if (!r.ok) throw new Error('获取文件失败 ' + r.status);
+        return r.json();
+      }).then(function (existing) {
+        var body = {
+          message: 'Update background via admin',
+          content: base64,
+          branch: cfg.branch
+        };
+        if (existing && existing.sha) body.sha = existing.sha;
+        return fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + cfg.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) {
+            throw new Error(j.message || ('HTTP ' + r.status));
+          });
+        }
+        return r.json();
+      }).then(function (res) {
+        // 本地预览：把 dataURL 写入 blog-bg-data，触发当前浏览器立即应用背景
+        try { localStorage.setItem('blog-bg-data', dataUrl); } catch (e) {}
+        theme.bgUrl = dataUrl;
+        theme.background = 'custom';
+        applyTheme();
+        bgStatusBox.innerHTML =
+          '<p class="admin-hint" style="margin:0;color:var(--accent-green)">✓ 背景图已推送：' + escapeHtml(res.commit?.html_url || '') + '</p>' +
+          '<p class="admin-hint" style="margin:4px 0 0 0">正在更新 js/data.js 引用...</p>';
+        var fileRef = './' + path + '?v=' + Date.now();
+        updateDataJsBackgroundRef(cfg, fileRef, bgStatusBox);
+      }).catch(function (err) {
+        bgStatusBox.innerHTML = '<p class="admin-hint" style="margin:0;color:var(--accent-rose)">✗ 上传失败：' + escapeHtml(err.message) + '</p>';
+      });
+    }
+
+    function updateDataJsBackgroundRef(cfg, fileRef, statusBox) {
+      var dataUrl = 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo + '/contents/js/data.js';
+      fetch(dataUrl + '?ref=' + encodeURIComponent(cfg.branch), {
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json'
+        }
+      }).then(function (r) {
+        if (!r.ok) throw new Error('读取 data.js 失败 ' + r.status);
+        return r.json();
+      }).then(function (data) {
+        var content = atob(data.content.replace(/\n/g, ''));
+        var newRef = "background: '" + fileRef + "'";
+        if (content.indexOf(newRef) >= 0) {
+          statusBox.innerHTML +=
+            '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-green)">✓ data.js 已指向最新背景，无需重复更新</p>' +
+            '<p class="admin-hint" style="margin:4px 0 0 0">GitHub Pages 将在约 1 分钟后重新部署。</p>';
+          return;
+        }
+        var newContent = content.replace(
+          /(\s*)background:\s*'[^']*'/,
+          '$1' + newRef
+        );
+        if (newContent === content) {
+          throw new Error('未在 data.js 找到 background 字段');
+        }
+        var base64 = btoa(unescape(encodeURIComponent(newContent)));
+        return fetch(dataUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + cfg.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Update data.js: background reference',
+            content: base64,
+            sha: data.sha,
+            branch: cfg.branch
+          })
+        }).then(function (r) {
+          if (!r.ok) {
+            return r.json().then(function (j) {
+              throw new Error(j.message || ('HTTP ' + r.status));
+            });
+          }
+          statusBox.innerHTML +=
+            '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-green)">✓ data.js 已更新</p>' +
+            '<p class="admin-hint" style="margin:4px 0 0 0">GitHub Pages 将在约 1 分钟后重新部署。部署完成后所有访客都能看到新背景。</p>';
+        });
+      }).catch(function (err) {
+        statusBox.innerHTML +=
+          '<p class="admin-hint" style="margin:4px 0 0 0;color:var(--accent-rose)">⚠ 图片已推送，但更新 data.js 失败：' + escapeHtml(err.message) + '。请手动将 js/data.js 的 background 字段改为 \'' + fileRef + '\' 并 commit。</p>';
+      });
+    }
+
+    bgUploadZone.addEventListener('click', function () { bgFileInput.click(); });
+    bgFileInput.addEventListener('change', function () {
+      if (this.files && this.files[0]) handleGhBgUpload(this.files[0]);
+      this.value = '';
+    });
+    bgUploadZone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      this.classList.add('dragover');
+    });
+    bgUploadZone.addEventListener('dragleave', function () {
+      this.classList.remove('dragover');
+    });
+    bgUploadZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      this.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleGhBgUpload(e.dataTransfer.files[0]);
     });
   }
 
@@ -1722,18 +1945,7 @@ ${BLOG_CONFIG.bio}。
     $('#section-title-input').placeholder = site.sectionTitle;
     $('#footer-text-input').placeholder = site.footerText;
 
-    // 博主头像上传预览：仅当本地 localStorage 有自定义头像时显示
-    var localAvatar = localStorage.getItem(SITE_KEYS.avatar);
-    if (localAvatar) {
-      $('#avatar-upload-preview').style.display = 'flex';
-      $('#avatar-upload-zone').style.display = 'none';
-      $('#avatar-preview-thumb').style.backgroundImage = 'url("' + localAvatar + '")';
-      $('#avatar-preview-name').textContent = '已上传的头像';
-      $('#avatar-preview-size').textContent = formatFileSize(localAvatar.length);
-    } else {
-      $('#avatar-upload-preview').style.display = 'none';
-      $('#avatar-upload-zone').style.display = '';
-    }
+    // 博主头像已移至管理页"站点设置"上传（推送 GitHub 仓库），不再在装修面板中显示
 
     // 布局
     $$('[data-group="layout"] .custom-option').forEach(btn => {
@@ -1753,14 +1965,9 @@ ${BLOG_CONFIG.bio}。
       saveTheme();
     });
 
-    // 定制面板
+    // 定制面板（仅从管理页内部打开，不再有右上角入口）
     const customizer = $('#customizer');
     const overlay = $('#customizer-overlay');
-
-    $('#customize-btn').addEventListener('click', function () {
-      customizer.classList.add('open');
-      overlay.classList.add('active');
-    });
 
     $('#customizer-close').addEventListener('click', closeCustomizer);
     overlay.addEventListener('click', closeCustomizer);
@@ -1911,68 +2118,8 @@ ${BLOG_CONFIG.bio}。
       hideUploadPreview();
     });
 
-    // === 博主头像上传 ===
-    const avatarZone = $('#avatar-upload-zone');
-    const avatarInput = $('#avatar-file-input');
-    const avatarPreviewBox = $('#avatar-upload-preview');
-    const avatarPreviewThumb = $('#avatar-preview-thumb');
-    const avatarPreviewName = $('#avatar-preview-name');
-    const avatarPreviewSize = $('#avatar-preview-size');
-
-    function handleAvatarFile(file) {
-      if (!file || !file.type.startsWith('image/')) {
-        alert('请选择图片文件（JPG / PNG / WebP）');
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        if (!confirm('图片超过 2MB，可能导致浏览器存储空间不足。是否继续？')) return;
-      }
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        var dataUrl = e.target.result;
-        try {
-          localStorage.setItem(SITE_KEYS.avatar, dataUrl);
-        } catch (err) {
-          alert('图片太大，无法保存到本地存储。请使用较小的图片。');
-          return;
-        }
-        avatarPreviewThumb.style.backgroundImage = 'url("' + dataUrl + '")';
-        avatarPreviewName.textContent = file.name || '已上传的头像';
-        avatarPreviewSize.textContent = formatFileSize(file.size);
-        avatarZone.style.display = 'none';
-        avatarPreviewBox.style.display = 'flex';
-        // 若当前正停留在关于页，立刻刷新使头像生效
-        if (state.route.page === 'about') router();
-      };
-      reader.onerror = function () { alert('读取图片失败，请重试。'); };
-      reader.readAsDataURL(file);
-    }
-
-    avatarZone.addEventListener('click', function () { avatarInput.click(); });
-    avatarInput.addEventListener('change', function () {
-      if (this.files && this.files[0]) handleAvatarFile(this.files[0]);
-      this.value = '';
-    });
-    avatarZone.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      this.classList.add('dragover');
-    });
-    avatarZone.addEventListener('dragleave', function () {
-      this.classList.remove('dragover');
-    });
-    avatarZone.addEventListener('drop', function (e) {
-      e.preventDefault();
-      this.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleAvatarFile(e.dataTransfer.files[0]);
-    });
-
-    $('#avatar-remove-btn').addEventListener('click', function () {
-      localStorage.removeItem(SITE_KEYS.avatar);
-      avatarInput.value = '';
-      avatarPreviewBox.style.display = 'none';
-      avatarZone.style.display = '';
-      if (state.route.page === 'about') router();
-    });
+    // 博主头像上传逻辑已移至管理页"站点设置"，这里不再绑定
+    // （保留 SITE_KEYS.avatar 字段供 admin 设置页使用）
 
     // 站点文案应用（留空恢复默认）
     $('#site-text-apply').addEventListener('click', function () {
