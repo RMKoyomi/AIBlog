@@ -12,13 +12,15 @@
  */
 
 const BLOG_CONFIG = {
-  siteName: '我的分享空间',
-  author: '博主',
+  siteName: 'Koyomi的小窝',
+  author: 'RMKoyomi',
   bio: '热爱技术与生活，分享所思所学',
+  // 默认博主头像（公网 URL，所有访客可见；可替换为自己的图片链接）
+  avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20professional%20headshot%20avatar%20photo%20of%20a%20friendly%20tech%20blogger%2C%20soft%20studio%20lighting%2C%20neutral%20gray%20background%2C%20sharp%20focus%2C%20high%20quality&image_size=square_hd',
   // 关于页面的社交媒体链接
   social: [
-    { name: 'GitHub', icon: 'GitHub', url: 'https://github.com' },
-    { name: '邮箱', icon: 'Email', url: 'mailto:hello@example.com' },
+    { name: 'GitHub', icon: 'GitHub', url: 'https://github.com/RMKoyomi' },
+    { name: '邮箱', icon: 'Email', url: '595560298@qq.com' },
     { name: 'RSS', icon: 'RSS', url: '#/about' }
   ]
 };
@@ -26,14 +28,14 @@ const BLOG_CONFIG = {
 const BLOG_POSTS = [
   {
     id: 'welcome-to-my-blog',
-    title: '欢迎来到我的分享空间',
+    title: '欢迎来到Koyomi的小窝',
     date: '2026-08-14',
     tags: ['公告', '随笔'],
     cover: 'blue',
     excerpt: '这是我的个人博客的第一篇文章。在这里，我将分享技术心得、生活感悟和学习笔记。欢迎一起交流！',
-    content: `# 欢迎来到我的分享空间
+    content: `# 欢迎来到Koyomi的小窝
 
-你好，欢迎来到我的个人博客！这是我记录和分享的地方。
+你好，欢迎来到Koyomi的小窝！这是我记录和分享的地方。  
 
 ## 为什么创建这个博客？
 

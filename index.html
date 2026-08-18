@@ -148,6 +148,25 @@
         </div>
       </div>
 
+      <!-- 博主头像 -->
+      <div class="custom-group">
+        <label class="custom-label">博主头像</label>
+        <div class="avatar-upload-zone" id="avatar-upload-zone">
+          <div class="avatar-upload-icon">&#128100;</div>
+          <div class="avatar-upload-text">点击选择图片或拖拽到此</div>
+          <div class="avatar-upload-hint">建议正方形，JPG/PNG/WebP，&lt;2MB</div>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none">
+        </div>
+        <div class="avatar-upload-preview" id="avatar-upload-preview" style="display:none">
+          <div class="avatar-preview-thumb" id="avatar-preview-thumb"></div>
+          <div class="avatar-preview-info">
+            <span class="avatar-preview-name" id="avatar-preview-name"></span>
+            <span class="avatar-preview-size" id="avatar-preview-size"></span>
+          </div>
+          <button class="bg-remove-btn" id="avatar-remove-btn" title="移除头像">&times;</button>
+        </div>
+      </div>
+
       <!-- 站点文案 -->
       <div class="custom-group">
         <label class="custom-label">站点文案</label>

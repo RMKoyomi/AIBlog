@@ -46,7 +46,8 @@
     sectionTitle: 'site-section-title',
     footerText: 'site-footer',
     layout: 'site-layout',
-    columns: 'site-columns'
+    columns: 'site-columns',
+    avatar: 'site-avatar'
   };
 
   function getSite() {
@@ -58,7 +59,8 @@
       footerText: localStorage.getItem(SITE_KEYS.footerText) ||
         (BLOG_CONFIG.siteName + ' · Powered by Markdown'),
       layout: localStorage.getItem(SITE_KEYS.layout) || 'grid',
-      columns: localStorage.getItem(SITE_KEYS.columns) || 'auto'
+      columns: localStorage.getItem(SITE_KEYS.columns) || 'auto',
+      avatar: localStorage.getItem(SITE_KEYS.avatar) || BLOG_CONFIG.avatar || ''
     };
   }
 
@@ -564,6 +566,7 @@
   // 页面渲染：关于
   // ========================================
   function renderAbout() {
+    const site = getSite();
     const socialLinks = BLOG_CONFIG.social.map(s => {
       const icons = {
         'GitHub': '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.26.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.085 1.838 1.237 1.838 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.42-1.305.762-1.605-2.665-.305-5.467-1.332-5.467-5.93 0-1.31.467-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 0 1 3-.404c1.02.005 2.045.138 3 .404 2.29-1.553 3.297-1.23 3.297-1.23.655 1.653.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.624-5.48 5.92.43.37.823 1.103.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .32.217.694.825.577C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>',
@@ -610,7 +613,7 @@ ${BLOG_CONFIG.bio}。
       <div class="about-page">
         <div class="about-card">
           <div class="about-header">
-            <div class="about-avatar">${BLOG_CONFIG.author.charAt(0)}</div>
+            <div class="about-avatar">${site.avatar ? '<img src="' + site.avatar + '" alt="' + escapeHtml(BLOG_CONFIG.author) + '">' : BLOG_CONFIG.author.charAt(0)}</div>
             <div>
               <div class="about-name">${BLOG_CONFIG.author}</div>
               <div class="about-bio">${BLOG_CONFIG.bio}</div>
@@ -1401,6 +1404,19 @@ ${BLOG_CONFIG.bio}。
     $('#section-title-input').placeholder = site.sectionTitle;
     $('#footer-text-input').placeholder = site.footerText;
 
+    // 博主头像上传预览：仅当本地 localStorage 有自定义头像时显示
+    var localAvatar = localStorage.getItem(SITE_KEYS.avatar);
+    if (localAvatar) {
+      $('#avatar-upload-preview').style.display = 'flex';
+      $('#avatar-upload-zone').style.display = 'none';
+      $('#avatar-preview-thumb').style.backgroundImage = 'url("' + localAvatar + '")';
+      $('#avatar-preview-name').textContent = '已上传的头像';
+      $('#avatar-preview-size').textContent = formatFileSize(localAvatar.length);
+    } else {
+      $('#avatar-upload-preview').style.display = 'none';
+      $('#avatar-upload-zone').style.display = '';
+    }
+
     // 布局
     $$('[data-group="layout"] .custom-option').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === site.layout);
@@ -1575,6 +1591,69 @@ ${BLOG_CONFIG.bio}。
       saveTheme();
       applyTheme();
       hideUploadPreview();
+    });
+
+    // === 博主头像上传 ===
+    const avatarZone = $('#avatar-upload-zone');
+    const avatarInput = $('#avatar-file-input');
+    const avatarPreviewBox = $('#avatar-upload-preview');
+    const avatarPreviewThumb = $('#avatar-preview-thumb');
+    const avatarPreviewName = $('#avatar-preview-name');
+    const avatarPreviewSize = $('#avatar-preview-size');
+
+    function handleAvatarFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        alert('请选择图片文件（JPG / PNG / WebP）');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        if (!confirm('图片超过 2MB，可能导致浏览器存储空间不足。是否继续？')) return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        try {
+          localStorage.setItem(SITE_KEYS.avatar, dataUrl);
+        } catch (err) {
+          alert('图片太大，无法保存到本地存储。请使用较小的图片。');
+          return;
+        }
+        avatarPreviewThumb.style.backgroundImage = 'url("' + dataUrl + '")';
+        avatarPreviewName.textContent = file.name || '已上传的头像';
+        avatarPreviewSize.textContent = formatFileSize(file.size);
+        avatarZone.style.display = 'none';
+        avatarPreviewBox.style.display = 'flex';
+        // 若当前正停留在关于页，立刻刷新使头像生效
+        if (state.route.page === 'about') router();
+      };
+      reader.onerror = function () { alert('读取图片失败，请重试。'); };
+      reader.readAsDataURL(file);
+    }
+
+    avatarZone.addEventListener('click', function () { avatarInput.click(); });
+    avatarInput.addEventListener('change', function () {
+      if (this.files && this.files[0]) handleAvatarFile(this.files[0]);
+      this.value = '';
+    });
+    avatarZone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      this.classList.add('dragover');
+    });
+    avatarZone.addEventListener('dragleave', function () {
+      this.classList.remove('dragover');
+    });
+    avatarZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      this.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleAvatarFile(e.dataTransfer.files[0]);
+    });
+
+    $('#avatar-remove-btn').addEventListener('click', function () {
+      localStorage.removeItem(SITE_KEYS.avatar);
+      avatarInput.value = '';
+      avatarPreviewBox.style.display = 'none';
+      avatarZone.style.display = '';
+      if (state.route.page === 'about') router();
     });
 
     // 站点文案应用（留空恢复默认）
