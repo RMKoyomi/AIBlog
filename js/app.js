@@ -487,6 +487,11 @@
         </a>
         <div class="article-layout">
           <div>
+            ${(post.cover && (post.cover.indexOf('http') === 0 || post.cover.indexOf('data:') === 0)) ? `
+              <div class="article-cover">
+                <img src="${escapeHtml(post.cover)}" alt="${escapeHtml(post.title)} 封面">
+              </div>
+            ` : ''}
             <div class="article-header">
               <h1 class="article-detail-title">${escapeHtml(post.title)}</h1>
               <div class="article-detail-meta">
