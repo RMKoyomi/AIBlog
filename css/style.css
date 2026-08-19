@@ -694,6 +694,24 @@ img { max-width: 100%; height: auto; }
   border: none;
 }
 
+/* 文章详情页顶部封面图 */
+.article-cover {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.article-cover img {
+  width: 100%;
+  max-height: 480px;
+  object-fit: cover;
+  display: block;
+}
+@media (max-width: 768px) {
+  .article-cover { border-radius: 8px; }
+  .article-cover img { max-height: 280px; }
+}
+
 /* === Markdown 渲染排版 === */
 .markdown-body {
   font-size: 1rem;
