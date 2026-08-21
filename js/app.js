@@ -278,6 +278,14 @@
     return div.innerHTML;
   }
 
+  // base64 -> UTF-8 字符串（正确处理中文等多字节字符）
+  function base64ToUtf8(b64) {
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
   function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -1213,7 +1221,7 @@ ${BLOG_CONFIG.bio}。
         if (!r.ok) throw new Error('读取 data.js 失败 ' + r.status);
         return r.json();
       }).then(function (data) {
-        var content = atob(data.content.replace(/\n/g, ''));
+        var content = base64ToUtf8(data.content.replace(/\n/g, ''));
         var newRef = "avatar: '" + fileRef + "'";
         // 已包含同引用则跳过
         if (content.indexOf(newRef) >= 0) {
@@ -1371,7 +1379,7 @@ ${BLOG_CONFIG.bio}。
         if (!r.ok) throw new Error('读取 data.js 失败 ' + r.status);
         return r.json();
       }).then(function (data) {
-        var content = atob(data.content.replace(/\n/g, ''));
+        var content = base64ToUtf8(data.content.replace(/\n/g, ''));
         var newRef = "background: '" + fileRef + "'";
         if (content.indexOf(newRef) >= 0) {
           statusBox.innerHTML +=
@@ -1943,7 +1951,7 @@ ${BLOG_CONFIG.bio}。
       var existing = [];
       if (data && data.content) {
         try {
-          existing = JSON.parse(atob(data.content.replace(/\n/g, '')));
+          existing = JSON.parse(base64ToUtf8(data.content.replace(/\n/g, '')));
           if (!Array.isArray(existing)) existing = [];
         } catch (e) { existing = []; }
       }
@@ -1997,7 +2005,7 @@ ${BLOG_CONFIG.bio}。
       var existing = [];
       if (data && data.content) {
         try {
-          existing = JSON.parse(atob(data.content.replace(/\n/g, '')));
+          existing = JSON.parse(base64ToUtf8(data.content.replace(/\n/g, '')));
           if (!Array.isArray(existing)) existing = [];
         } catch (e) { existing = []; }
       }
