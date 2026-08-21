@@ -35,7 +35,7 @@ const BLOG_POSTS = [
     title: '欢迎来到Koyomi的小窝',
     date: '2026-08-14',
     tags: ['公告', '随笔'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20warm%20and%20inviting%20blog%20homepage%20illustration%20with%20soft%20lighting%2C%20books%2C%20a%20coffee%20cup%2C%20and%20a%20laptop%20on%20a%20cozy%20wooden%20desk%2C%20digital%20art%20style%2C%20warm%20color%20palette&image_size=landscape_16_9',
+    cover: 'https://img1.baidu.com/it/u=3827559347,4237310830&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500',
     excerpt: '这是我的个人博客的第一篇文章。在这里，我将分享技术心得、生活感悟和学习笔记。欢迎一起交流！',
     content: `# 欢迎来到Koyomi的小窝
 
@@ -103,7 +103,7 @@ console.log(greet('朋友'));
     title: '2026年你必须掌握的现代CSS技巧',
     date: '2026-08-10',
     tags: ['技术', 'CSS', '前端'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Modern%20CSS%20web%20design%20concept%20illustration%20with%20colorful%20geometric%20shapes%2C%20grid%20layouts%2C%20fluid%20gradients%2C%20and%20clean%20code%20elements%2C%20purple%20and%20blue%20tech%20aesthetic&image_size=landscape_16_9',
+    cover: 'https://img2.baidu.com/it/u=1547246490,3263266566&fm=253&fmt=auto&app=120&f=JPEG?w=1422&h=800',
     excerpt: 'CSS 发展日新月异，本文介绍容器查询、CSS嵌套、@layer、逻辑属性、滚动驱动动画等现代CSS特性，帮你写出更优雅的样式。',
     content: `# 2026年你必须掌握的现代CSS技巧
 
@@ -253,7 +253,7 @@ form:has(input:invalid) .warning {
     title: '《深度工作》读书笔记：如何在分心时代保持专注',
     date: '2026-08-05',
     tags: ['读书', '效率', '随笔'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20person%20in%20deep%20concentration%20working%20at%20a%20clean%20minimal%20desk%2C%20focused%20productivity%20scene%2C%20soft%20natural%20window%20lighting%2C%20calm%20green%20and%20warm%20tones%2C%20books%20and%20notebook%20on%20desk&image_size=landscape_16_9',
+    cover: 'https://img2.baidu.com/it/u=618885737,3967403611&fm=253&fmt=auto&app=120&f=JPEG?w=1422&h=800',
     excerpt: '卡尔·纽波特的《深度工作》是一本关于专注力的经典著作。本文分享核心观点和实践方法，帮助你在信息碎片化时代找回深度思考的能力。',
     content: `# 《深度工作》读书笔记
 
@@ -357,7 +357,7 @@ form:has(input:invalid) .warning {
     title: 'JavaScript 异步编程完全指南',
     date: '2026-07-28',
     tags: ['技术', 'JavaScript', '前端'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=JavaScript%20async%20programming%20concept%20art%20with%20flowing%20data%20streams%2C%20promise%20chains%2C%20and%20modern%20code%20editor%20on%20screen%2C%20orange%20and%20blue%20tech%20theme%2C%20abstract%20digital%20illustration&image_size=landscape_16_9',
+    cover: 'https://img2.baidu.com/it/u=3799070309,3638852344&fm=253&app=138&f=JPEG?w=889&h=500',
     excerpt: '从回调地狱到 async/await，全面梳理 JavaScript 异步编程的演进历程和最佳实践。包含 Promise、Generator、async/await 的深入解析。',
     content: `# JavaScript 异步编程完全指南
 
@@ -595,7 +595,7 @@ async function mapLimit(items, limit, asyncFn) {
     title: '云南行记：苍山洱海间的慢时光',
     date: '2026-07-15',
     tags: ['旅行', '随笔', '生活'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Beautiful%20Yunnan%20China%20landscape%20with%20Cangshan%20mountains%20and%20Erhai%20lake%2C%20golden%20sunset%20reflection%20on%20water%2C%20traditional%20Chinese%20scenery%2C%20travel%20photography%20style%2C%20serene%20and%20majestic&image_size=landscape_16_9',
+    cover: 'https://img2.baidu.com/it/u=1594995201,2586220234&fm=253&app=138&f=JPEG?w=889&h=500',
     excerpt: '从大理到丽江，从苍山到洱海。七天的云南之旅，让我重新认识了"慢生活"的意义。分享行程攻略和沿途感悟。',
     content: `# 云南行记：苍山洱海间的慢时光
 
@@ -708,7 +708,7 @@ async function mapLimit(items, limit, asyncFn) {
     title: '2026年我每天在用的高效工具清单',
     date: '2026-07-01',
     tags: ['工具', '效率', '技术'],
-    cover: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20clean%20organized%20workspace%20with%20various%20productivity%20tools%2C%20notebooks%2C%20devices%2C%20and%20app%20icons%20floating%20around%2C%20minimal%20modern%20aesthetic%2C%20soft%20pink%20and%20white%20color%20scheme&image_size=landscape_16_9',
+    cover: 'https://img2.baidu.com/it/u=2364054517,1074025141&fm=253&app=138&f=JPEG?w=889&h=500',
     excerpt: '工欲善其事，必先利其器。分享我日常使用的效率工具，涵盖笔记、任务管理、开发工具、设计工具等，帮你打造高效工作流。',
     content: `# 2026年我每天在用的高效工具清单
 
