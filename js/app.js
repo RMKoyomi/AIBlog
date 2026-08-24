@@ -1953,7 +1953,10 @@ ${BLOG_CONFIG.bio}。
         try {
           existing = JSON.parse(base64ToUtf8(data.content.replace(/\n/g, '')));
           if (!Array.isArray(existing)) existing = [];
-        } catch (e) { existing = []; }
+        } catch (e) {
+          callback('远程 custom-posts.json 已损坏（可能是之前乱码 bug 导致），无法读取旧文章。请到 GitHub 手动修复或删除该文件后再推送。错误：' + e.message);
+          return;
+        }
       }
       // 2. \u5408\u5e76\u6587\u7ae0\uff1a\u540c id \u8986\u76d6\uff0c\u5426\u5219\u8ffd\u52a0
       var idx = existing.findIndex(function (p) { return p.id === postObj.id; });
@@ -2007,7 +2010,10 @@ ${BLOG_CONFIG.bio}。
         try {
           existing = JSON.parse(base64ToUtf8(data.content.replace(/\n/g, '')));
           if (!Array.isArray(existing)) existing = [];
-        } catch (e) { existing = []; }
+        } catch (e) {
+          callback('远程 custom-posts.json 已损坏，无法读取旧文章。请到 GitHub 手动修复或删除该文件后再操作。错误：' + e.message);
+          return;
+        }
       }
       var filtered = existing.filter(function (p) { return p.id !== id; });
       var newJson = JSON.stringify(filtered, null, 2);
